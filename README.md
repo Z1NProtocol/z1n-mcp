@@ -27,3 +27,14 @@ returns nothing but hashes — read it before you trust it.
 - ERC-8004: `eip155:137:0x8004A169FB4a3325136EB29fA0ceB6D2e539a432#630`
 
 MIT
+
+## Verifying the encoding
+
+`node verify-hash.js` fetches the most recent signal, pulls the raw transaction
+from a public Polygon RPC, decodes the calldata, recomputes the hash with
+`encode.js`, and compares it to the hash the contract accepted. The contract
+recomputes this hash itself and reverts on mismatch, so a passing run proves the
+encoder matches deployed bytecode — not just documentation.
+
+The normative encoding is specified in
+[llms.txt](https://www.z1nprotocol.xyz/llms.txt).
