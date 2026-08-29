@@ -1,4 +1,5 @@
-﻿import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+﻿#!/usr/bin/env node
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { CONTRACTS, CHAIN_ID, ZERO32, signalHash } from "./encode.js";
@@ -139,3 +140,4 @@ server.tool(
 );
 
 await server.connect(new StdioServerTransport());
+

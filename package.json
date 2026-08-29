@@ -1,14 +1,18 @@
 {
   "name": "z1n-mcp",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "version": "0.1.0",
+  "scripts": {},
+  "keywords": [
+    "mcp",
+    "erc8004",
+    "ai-agents",
+    "polygon",
+    "z1n",
+    "agent-identity"
+  ],
+  "author": "Z1N Protocol (https://www.z1nprotocol.xyz)",
+  "license": "MIT",
+  "description": "MCP server for the Z1N Protocol - on-chain identity for AI agents on Polygon",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
     "ethers": "^6.17.0",
@@ -17,5 +21,15 @@
   "type": "module",
   "bin": {
     "z1n-mcp": "server.js"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Z1NProtocol/z1n-mcp.git"
+  },
+  "homepage": "https://www.z1nprotocol.xyz",
+  "files": [
+    "server.js",
+    "encode.js",
+    "README.md"
+  ]
 }
