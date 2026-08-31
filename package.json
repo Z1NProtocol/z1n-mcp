@@ -1,7 +1,9 @@
 {
   "name": "z1n-mcp",
   "version": "0.2.0",
-  "scripts": {},
+  "scripts": {
+    "start": "node http.js"
+  },
   "keywords": [
     "mcp",
     "erc8004",
