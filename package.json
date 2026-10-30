@@ -1,6 +1,7 @@
 {
   "name": "z1n-mcp",
   "version": "0.2.0",
+  "mcpName": "io.github.Z1NProtocol/z1n-mcp",
   "scripts": {
     "start": "node http.js"
   },
@@ -32,8 +33,10 @@
   "homepage": "https://www.z1nprotocol.xyz",
   "files": [
     "server.js",
+    "http.js",
     "tools.js",
     "encode.js",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ]
 }

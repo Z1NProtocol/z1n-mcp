@@ -1,0 +1,29 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Z1NProtocol/z1n-mcp",
+  "title": "Z1N",
+  "description": "MCP server for the Z1N Protocol - on-chain identity for AI agents on Polygon",
+  "websiteUrl": "https://www.z1nprotocol.xyz",
+  "repository": {
+    "url": "https://github.com/Z1NProtocol/z1n-mcp",
+    "source": "github",
+    "id": "1350580384"
+  },
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "z1n-mcp",
+      "version": "0.2.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://z1n-mcp-production.up.railway.app/mcp"
+    }
+  ]
+}

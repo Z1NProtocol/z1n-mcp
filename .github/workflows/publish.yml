@@ -1,23 +1,119 @@
-﻿name: Publish to npm
+﻿# Publishes z1n-mcp when a v* tag is pushed (for example v0.2.0).
+# A GitHub Release is not required; creating one only helps if it pushes the tag.
+#
+# npm auth is trusted publishing (OIDC). Do not set NODE_AUTH_TOKEN: actions/setup-node
+# would otherwise export GITHUB_TOKEN as that variable, and npm then fails the
+# publish with E404. The package needs a GitHub Actions trusted publisher for
+# this file (publish.yml) with direct `npm publish` allowed.
+#
+# The MCP Registry step uses the same job's GitHub OIDC identity. It can publish
+# io.github.Z1NProtocol/* because the repository owner is the Z1NProtocol org.
+# No registry token is stored.
+
+name: Publish to npm and the MCP Registry
 
 on:
   push:
     tags:
       - "v*"
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
-      - run: npm install -g npm@latest
-      - run: npm ci --omit=dev || npm install --omit=dev
-      - run: npm publish
+
+      - name: Install an npm that supports trusted publishing
+        run: |
+          npm install -g npm@latest
+          node --input-type=module <<'EOF'
+          import { execSync } from "node:child_process";
+
+          const node = process.versions.node.split(".").map(Number);
+          if (node[0] < 22 || (node[0] === 22 && node[1] < 14)) {
+            console.error(`Node ${process.version} is older than 22.14.0`);
+            process.exit(1);
+          }
+          const npm = execSync("npm --version", { encoding: "utf8" }).trim().split(".").map(Number);
+          const npmOk = npm[0] > 11 || (npm[0] === 11 && (npm[1] > 5 || (npm[1] === 5 && npm[2] >= 1)));
+          if (!npmOk) {
+            console.error(`npm ${npm.join(".")} is older than 11.5.1`);
+            process.exit(1);
+          }
+          console.log(`node ${process.version}, npm ${npm.join(".")}`);
+          EOF
+
+      - run: npm ci
+
+      - name: Require the tag to match package.json and server.json
+        run: |
+          node --input-type=module <<'EOF'
+          import { readFileSync } from "node:fs";
+
+          const tag = (process.env.GITHUB_REF || "").replace("refs/tags/", "");
+          const version = tag.startsWith("v") ? tag.slice(1) : "";
+          const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+          const server = JSON.parse(readFileSync("server.json", "utf8"));
+          const problems = [];
+          if (!version) problems.push(`ref ${process.env.GITHUB_REF} is not a v* tag`);
+          if (pkg.version !== version) problems.push(`package.json version is ${pkg.version}, tag is ${version}`);
+          if (pkg.mcpName !== server.name) problems.push(`package.json mcpName ${pkg.mcpName} != server.json name ${server.name}`);
+          if (server.version !== version) problems.push(`server.json version is ${server.version}, tag is ${version}`);
+          if (server.packages?.[0]?.identifier !== pkg.name) {
+            problems.push(`server.json package identifier ${server.packages?.[0]?.identifier} != ${pkg.name}`);
+          }
+          if (server.packages?.[0]?.version !== version) {
+            problems.push(`server.json package version is ${server.packages?.[0]?.version}, tag is ${version}`);
+          }
+          if (problems.length) {
+            console.error(problems.join("\n"));
+            process.exit(1);
+          }
+          console.log(`Releasing ${server.name} ${version}`);
+          EOF
+
+      - name: Publish package to npm
+        run: |
+          # Trusted publishing reads the GitHub OIDC token. A leftover
+          # NODE_AUTH_TOKEN (the Actions GITHUB_TOKEN) makes npm skip that
+          # and PUT the package with credentials npm rejects as E404.
+          unset NODE_AUTH_TOKEN
+          npm publish
+
+      - name: Install mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          ./mcp-publisher --help
+
+      - name: Authenticate to the MCP Registry
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server to the MCP Registry
+        run: |
+          # The registry reads mcpName from the npm package that was just
+          # published. The metadata is occasionally a few seconds behind.
+          log=$(mktemp)
+          for attempt in 1 2 3 4 5; do
+            set +e
+            ./mcp-publisher publish 2>&1 | tee "$log"
+            status=${PIPESTATUS[0]}
+            set -e
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+            if grep -Eqi "mcpName|package validation|could not find|not found|Registry validation failed|failed to fetch" "$log"; then
+              echo "npm metadata not visible yet (attempt ${attempt}); waiting 20s"
+              sleep 20
+              continue
+            fi
+            exit "$status"
+          done
+          exit 1
